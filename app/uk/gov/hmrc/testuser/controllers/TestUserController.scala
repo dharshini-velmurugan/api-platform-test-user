@@ -74,9 +74,13 @@ class TestUserController @Inject() (val testUserService: TestUserService, cc: Co
   }
 
   def createAgent() = Action.async(parse.json) { implicit request =>
-    withJsonBody[CreateUserRequest] { createUserRequest =>
-      testUserService.createTestAgent(createUserRequest.serviceNames.getOrElse(Seq.empty)) map { agent =>
-        Created(toJson(TestAgentCreatedResponse.from(agent)))
+    withJsonBody[CreateUserWithOptionalRequestParams] { createUserRequest =>
+      testUserService.createTestAgent(
+        createUserRequest.serviceNames.getOrElse(Seq.empty),
+        createUserRequest.pillar2Id
+      ) map {
+        case Left(Pillar2IdAlreadyUsed)       => BadRequest(toJson(ErrorResponse.pillar2IdAlreadyUsed))
+        case Right (agent) => Created(toJson(TestAgentCreatedResponse.from(agent)))
       }
     } recover recovery
   }

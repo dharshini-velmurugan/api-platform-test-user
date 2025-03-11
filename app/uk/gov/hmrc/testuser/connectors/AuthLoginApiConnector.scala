@@ -76,6 +76,7 @@ object MdtpInformation {
 }
 
 case class Enrolment(key: String, identifiers: Seq[Identifier], state: String = "Activated")
+case class DelegatedEnrolment(key: String, identifiers: Seq[Identifier], delegatedAuthRule: String)
 
 case class GovernmentGatewayLogin(
     credId: String,
@@ -90,7 +91,8 @@ case class GovernmentGatewayLogin(
     itmpData: Option[ItmpData],
     mdtpInformation: Option[MdtpInformation] = None,
     credentialRole: Option[String] = None,
-    agentCode: Option[String] = None
+    agentCode: Option[String] = None,
+    delegatedEnrolment: Option[Seq[DelegatedEnrolment]] = None
   )
 
 case class ItmpData(
@@ -228,9 +230,16 @@ object GovernmentGatewayLogin {
   }
 
   private def fromAgent(agent: TestAgent)(implicit hc: HeaderCarrier): GovernmentGatewayLogin = {
+    def asDelegatedEnrolment(serviceName: ServiceKey) = {
+      serviceName match {
+        case PILLAR_2     => agent.delegatedarn map { delegatedarn => DelegatedEnrolment("HMRC-PILLAR2-ORG", Seq(Identifier("PLRID", delegatedarn)),"pillar2-auth") }
+        case _            => None
+      }
+    }
     def asEnrolment(serviceName: ServiceKey) = {
       serviceName match {
         case AGENT_SERVICES => agent.arn map { arn => Enrolment("HMRC-AS-AGENT", Seq(Identifier("AgentReferenceNumber", arn))) }
+        case PILLAR_2     => agent.arn map { arn => Enrolment("HMRC-AS-AGENT", Seq(Identifier("AgentReferenceNumber", arn))) }
         case _              => None
       }
     }
@@ -247,7 +256,8 @@ object GovernmentGatewayLogin {
       groupIdentifier = agent.groupIdentifier.getOrElse(""),
       itmpData = None,
       agentCode = agent.agentCode,
-      mdtpInformation = Some(MdtpInformation.fromHeaderCarrier)
+      mdtpInformation = Some(MdtpInformation.fromHeaderCarrier),
+      delegatedEnrolment = Some(agent.services.flatMap(asDelegatedEnrolment))
     )
   }
 }

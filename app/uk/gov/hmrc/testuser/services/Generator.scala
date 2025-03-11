@@ -210,13 +210,14 @@ class Generator @Inject() (val testUserRepository: TestUserRepository, val confi
     }
   }
 
-  def generateTestAgent(services: Seq[ServiceKey] = Seq.empty): Future[TestAgent] = {
+  def generateTestAgent(services: Seq[ServiceKey] = Seq.empty,pillar2Id : Option[Pillar2Id]): Future[TestAgent] = {
     def whenAppropriate: (=> Future[String]) => Future[Option[String]] = gen =>
       if (services.contains(AGENT_SERVICES)) {
         gen.map(Some(_))
       } else {
         Future.successful(None)
       }
+    def whenF[T](keys: ServiceKey*)(thenDo: => Future[T]): Future[Option[T]] = Generator.whenF(services)(keys)(thenDo)
 
     for {
       arn            <- whenAppropriate(generateArn)
@@ -226,11 +227,14 @@ class Generator @Inject() (val testUserRepository: TestUserRepository, val confi
       userFullName    = generateUserFullName(firstName, lastName)
       emailAddress    = generateEmailAddress(firstName, lastName)
       groupIdentifier = Some(generateGroupIdentifier)
+      pillar2Id       <- whenF(PILLAR_2)(useProvidedOrGeneratedPillar2Id(pillar2Id))
+      delegatedarn <- whenAppropriate(generateArn)
     } yield {
       val props = Map[TestUserPropKey, Option[String]](
         TestUserPropKey.groupIdentifier -> groupIdentifier,
         TestUserPropKey.arn             -> arn,
-        TestUserPropKey.agentCode       -> agentCode
+        TestUserPropKey.agentCode       -> agentCode,
+        TestUserPropKey.pillar2Id       -> pillar2Id
       ).collect {
         case (key, Some(value)) => key -> value
       }
@@ -240,10 +244,10 @@ class Generator @Inject() (val testUserRepository: TestUserRepository, val confi
         userFullName,
         emailAddress,
         services,
-        props
-      )
+        props)
     }
   }
+
 
   def generateUserFullName(firstName: String, lastName: String) = s"$firstName $lastName"
 

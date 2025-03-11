@@ -79,6 +79,15 @@ class TestUserService @Inject() (
     )(createTestUser)
   }
 
+  private def validatePillar2AgentRequest[T](maybePillar2Id: Option[Pillar2Id])(createTestUser: => Future[T]): Future[Either[CreateTestUserError, T]] = {
+    validateField(
+      maybeValue = maybePillar2Id,
+      isUnique = (pillar2Id: Pillar2Id) => testUserRepository.fetchAgentByPillar2Id(pillar2Id).map(_.fold(true)(_ => false)),
+      error = Pillar2IdAlreadyUsed,
+      allowDuplicate = (pillar2Id: Pillar2Id) => pillar2Id.value == InternalServerErrorPillar2Id
+    )(createTestUser)
+  }
+
   def createTestIndividual(
       serviceNames: Seq[ServiceKey],
       eoriNumber: Option[EoriNumber] = None,
@@ -140,11 +149,20 @@ class TestUserService @Inject() (
     }
   }
 
-  def createTestAgent(serviceNames: Seq[ServiceKey]) = {
-    generator.generateTestAgent(serviceNames).flatMap { agent =>
+
+  def createTestAgent(serviceNames: Seq[ServiceKey],pillar2Id : Option[Pillar2Id])(implicit hc: HeaderCarrier
+  ): Future[Either[CreateTestUserError, TestAgent]]  = {
+    def createdAgent = generator.generateTestAgent(serviceNames,pillar2Id).flatMap { agent =>
       val hashedPassword = passwordService.hash(agent.password)
       testUserRepository.createUser(agent.copy(password = hashedPassword)) map (_ => agent)
     }
+    pillar2Id match {
+      case Some(p) => validatePillar2AgentRequest(Some(p)) {
+        createdAgent
+      }
+      case _ => createdAgent.map(Right(_))
+    }
+
   }
 
   def fetchIndividualByNino(nino: Nino): Future[TestIndividual] = {
@@ -185,5 +203,8 @@ class TestUserService @Inject() (
 
   def fetchOrganisationByPillar2Id(pillar2Id: Pillar2Id): Future[TestOrganisation] = {
     testUserRepository.fetchOrganisationByPillar2Id(pillar2Id) map (t => t.getOrElse(throw UserNotFound(ORGANISATION)))
+  }
+  def fetchAgentByPillar2Id(pillar2Id: Pillar2Id): Future[TestAgent] = {
+    testUserRepository.fetchAgentByPillar2Id(pillar2Id) map (t => t.getOrElse(throw UserNotFound(ORGANISATION)))
   }
 }

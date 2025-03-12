@@ -55,9 +55,9 @@ object JsonFormatters {
 
   implicit val formatErrorResponse: OFormat[ErrorResponse] = Json.format[ErrorResponse]
 
-  implicit val formatTaxIdentifier: OFormat[Identifier] = Json.format[Identifier]
-  implicit val formatEnrolment: OFormat[Enrolment]      = Json.format[Enrolment]
-  implicit val formatDelegatedEnrolment: OFormat[DelegatedEnrolment]      = Json.format[DelegatedEnrolment]
+  implicit val formatTaxIdentifier: OFormat[Identifier]              = Json.format[Identifier]
+  implicit val formatEnrolment: OFormat[Enrolment]                   = Json.format[Enrolment]
+  implicit val formatDelegatedEnrolment: OFormat[DelegatedEnrolment] = Json.format[DelegatedEnrolment]
 
   implicit val formatAuthLoginAddress: OFormat[AuthLoginAddress]             = Json.format[AuthLoginAddress]
   implicit val formatItmpData: OFormat[ItmpData]                             = Json.format[ItmpData]

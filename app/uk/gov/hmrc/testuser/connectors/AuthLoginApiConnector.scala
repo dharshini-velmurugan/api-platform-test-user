@@ -232,14 +232,14 @@ object GovernmentGatewayLogin {
   private def fromAgent(agent: TestAgent)(implicit hc: HeaderCarrier): GovernmentGatewayLogin = {
     def asDelegatedEnrolment(serviceName: ServiceKey) = {
       serviceName match {
-        case PILLAR_2     => agent.delegatedarn map { delegatedarn => DelegatedEnrolment("HMRC-PILLAR2-ORG", Seq(Identifier("PLRID", delegatedarn)),"pillar2-auth") }
-        case _            => None
+        case PILLAR_2 => agent.delegatedEnrolment map { pillar2Id => DelegatedEnrolment("HMRC-PILLAR2-ORG", Seq(Identifier("PLRID", pillar2Id)), "pillar2-auth") }
+        case _        => None
       }
     }
-    def asEnrolment(serviceName: ServiceKey) = {
+    def asEnrolment(serviceName: ServiceKey)          = {
       serviceName match {
         case AGENT_SERVICES => agent.arn map { arn => Enrolment("HMRC-AS-AGENT", Seq(Identifier("AgentReferenceNumber", arn))) }
-        case PILLAR_2     => agent.arn map { arn => Enrolment("HMRC-AS-AGENT", Seq(Identifier("AgentReferenceNumber", arn))) }
+        case PILLAR_2       => agent.arn map { arn => Enrolment("HMRC-AS-AGENT", Seq(Identifier("AgentReferenceNumber", arn))) }
         case _              => None
       }
     }

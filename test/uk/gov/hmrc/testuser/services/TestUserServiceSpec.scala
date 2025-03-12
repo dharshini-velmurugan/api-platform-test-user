@@ -82,7 +82,7 @@ class TestUserServiceSpec extends AsyncHmrcSpec {
 
   val organisationServices = Seq(NATIONAL_INSURANCE, MTD_INCOME_TAX)
 
-  val agentServices = Seq(AGENT_SERVICES)
+  val agentServices = Seq(AGENT_SERVICES, PILLAR_2)
 
   val testAgent = TestAgent(
     userId = userId,
@@ -276,23 +276,34 @@ class TestUserServiceSpec extends AsyncHmrcSpec {
     "Generate an agent and save it in the database" in new Setup {
 
       val hashedPassword = "hashedPassword"
-      when(underTest.generator.generateTestAgent(agentServices)).thenReturn(successful(testAgent))
+      when(underTest.generator.generateTestAgent(agentServices, None)).thenReturn(successful(testAgent))
       when(underTest.passwordService.hash(testAgent.password)).thenReturn(hashedPassword)
 
-      val result = await(underTest.createTestAgent(agentServices))
+      val result = await(underTest.createTestAgent(agentServices, None))
 
-      result shouldBe testAgent
+      result shouldBe Right(testAgent)
       verify(underTest.testUserRepository).createUser(testAgent.copy(password = hashedPassword))
     }
 
     "fail when the repository fails" in new Setup {
-      when(underTest.generator.generateTestAgent(*)).thenReturn(successful(testAgent))
+      when(underTest.generator.generateTestAgent(*, eqTo(None))).thenReturn(successful(testAgent))
       when(underTest.testUserRepository.createUser(*[TestUser]))
         .thenReturn(failed(new RuntimeException("expected test error")))
 
       intercept[RuntimeException] {
-        await(underTest.createTestAgent(agentServices))
+        await(underTest.createTestAgent(agentServices, eqTo(None)))
       }
+    }
+    "fail when the pillar2Id validation fails" in new Setup {
+      val pillar2Id = Pillar2Id("XE4444444444444")
+      when(underTest.testUserRepository.fetchAgentByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(Some(testAgent)))
+
+      val result = await(underTest.createTestAgent(agentServices, Some(pillar2Id)))
+
+      result shouldBe Left(Pillar2IdAlreadyUsed)
+
+      verify(underTest.testUserRepository, times(0)).createUser(any)
     }
   }
 

@@ -133,11 +133,12 @@ class AuthLoginApiConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPerSuite w
     password = "password",
     userFullName = userFullName,
     emailAddress = emailAddress,
-    services = Seq(AGENT_SERVICES),
+    services = Seq(AGENT_SERVICES, PILLAR_2),
     props = Map(
-      TestUserPropKey.arn             -> "NARN0396245",
-      TestUserPropKey.agentCode       -> "1234509876",
-      TestUserPropKey.groupIdentifier -> "agentGroup"
+      TestUserPropKey.arn                -> "NARN0396245",
+      TestUserPropKey.agentCode          -> "1234509876",
+      TestUserPropKey.groupIdentifier    -> "agentGroup",
+      TestUserPropKey.delegatedEnrolment -> pillar2Id
     )
   )
 
@@ -502,8 +503,25 @@ class AuthLoginApiConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPerSuite w
              |         "key":"AgentReferenceNumber",
              |         "value":"${testAgent.arn.get}"
              |       }]
+             |     },
+             |     {
+             |       "key": "HMRC-AS-AGENT",
+             |       "state": "Activated",
+             |       "identifiers": [
+             |       {
+             |         "key":"AgentReferenceNumber",
+             |         "value":"${testAgent.arn.get}"
+             |       }]
              |     }
              |   ],
+             |   "delegatedEnrolment" : [ {
+             |    "key" : "HMRC-PILLAR2-ORG",
+             |    "identifiers" : [ {
+             |      "key" : "PLRID",
+             |      "value" : "${testAgent.delegatedEnrolment.get}"
+             |    } ],
+             |    "delegatedAuthRule" : "pillar2-auth"
+             |  } ],
              |  "mdtpInformation" :{
              |  "deviceId":"TestDeviceId",
              |  "sessionId":"TestSessionId"

@@ -59,7 +59,7 @@ object TestUserPropKey {
   case object arn                                     extends TestUserPropKey
   case object agentCode                               extends TestUserPropKey
   case object pillar2Id                               extends TestUserPropKey
-  case object delegatedarn extends TestUserPropKey
+  case object delegatedEnrolment                      extends TestUserPropKey
 
   val values: Set[TestUserPropKey] = Set(
     saUtr,
@@ -79,7 +79,7 @@ object TestUserPropKey {
     arn,
     agentCode,
     pillar2Id,
-    delegatedarn
+    delegatedEnrolment
   )
 
   def apply(text: String): Option[TestUserPropKey] = TestUserPropKey.values.find(_.toString == text)
@@ -111,16 +111,16 @@ trait HasTTL {
 }
 
 case class TestOrganisation(
-                             userId: String,
-                             password: String,
-                             userFullName: String,
-                             emailAddress: String,
-                             organisationDetails: OrganisationDetails,
-                             individualDetails: Option[IndividualDetails],
-                             override val services: Seq[ServiceKey] = Seq.empty,
-                             vatRegistrationDate: Option[LocalDate] = None,
-                             props: Map[TestUserPropKey, String] = Map.empty
-                           ) extends TestUser {
+    userId: String,
+    password: String,
+    userFullName: String,
+    emailAddress: String,
+    organisationDetails: OrganisationDetails,
+    individualDetails: Option[IndividualDetails],
+    override val services: Seq[ServiceKey] = Seq.empty,
+    vatRegistrationDate: Option[LocalDate] = None,
+    props: Map[TestUserPropKey, String] = Map.empty
+  ) extends TestUser {
   val affinityGroup = "Organisation"
 
   // I O
@@ -169,7 +169,7 @@ object TestOrganisation {
       (JsPath \ "services").readWithDefault[Seq[ServiceKey]](Seq.empty) and
       (JsPath \ "vatRegistrationDate").readNullable[LocalDate] and
       (JsPath).read[Map[String, JsValue]].map(TestUserPropKey.convertMap(_))
-    )(TestOrganisation.apply _)
+  )(TestOrganisation.apply _)
 
   val writes: OWrites[TestOrganisation] = (
     (JsPath \ "userId").write[String] and
@@ -181,21 +181,21 @@ object TestOrganisation {
       (JsPath \ "services").write[Seq[ServiceKey]] and
       (JsPath \ "vatRegistrationDate").writeNullable[LocalDate] and
       (JsPath).write[Map[TestUserPropKey, String]]
-    )(unlift(TestOrganisation.unapply _))
+  )(unlift(TestOrganisation.unapply _))
 
   implicit val format: OFormat[TestOrganisation] = OFormat(reads, writes)
 }
 
 case class TestIndividual(
-                           userId: String,
-                           password: String,
-                           userFullName: String,
-                           emailAddress: String,
-                           individualDetails: IndividualDetails,
-                           services: Seq[ServiceKey] = Seq.empty,
-                           vatRegistrationDate: Option[LocalDate] = None,
-                           props: Map[TestUserPropKey, String] = Map.empty
-                         ) extends TestUser {
+    userId: String,
+    password: String,
+    userFullName: String,
+    emailAddress: String,
+    individualDetails: IndividualDetails,
+    services: Seq[ServiceKey] = Seq.empty,
+    vatRegistrationDate: Option[LocalDate] = None,
+    props: Map[TestUserPropKey, String] = Map.empty
+  ) extends TestUser {
   val affinityGroup                        = "Individual"
   lazy val saUtr: Option[String]           = props.get(TestUserPropKey.saUtr)
   lazy val nino: Option[String]            = props.get(TestUserPropKey.nino)
@@ -217,7 +217,7 @@ object TestIndividual {
       (JsPath \ "services").readWithDefault[Seq[ServiceKey]](Seq.empty) and
       (JsPath \ "vatRegistrationDate").readNullable[LocalDate] and
       (JsPath).read[Map[String, JsValue]].map(TestUserPropKey.convertMap(_))
-    )(TestIndividual.apply _)
+  )(TestIndividual.apply _)
 
   val writes: OWrites[TestIndividual] = (
     (JsPath \ "userId").write[String] and
@@ -228,24 +228,24 @@ object TestIndividual {
       (JsPath \ "services").write[Seq[ServiceKey]] and
       (JsPath \ "vatRegistrationDate").writeNullable[LocalDate] and
       (JsPath).write[Map[TestUserPropKey, String]]
-    )(unlift(TestIndividual.unapply _))
+  )(unlift(TestIndividual.unapply _))
 
   implicit val format: OFormat[TestIndividual] = OFormat(reads, writes)
 }
 
 case class TestAgent(
-                      userId: String,
-                      password: String,
-                      userFullName: String,
-                      emailAddress: String,
-                      services: Seq[ServiceKey] = Seq.empty,
-                      props: Map[TestUserPropKey, String] = Map.empty
-                    ) extends TestUser {
-  val affinityGroup                        = "Agent"
-  lazy val arn: Option[String]             = props.get(TestUserPropKey.arn)
-  lazy val agentCode: Option[String]       = props.get(TestUserPropKey.agentCode)
-  lazy val groupIdentifier: Option[String] = props.get(TestUserPropKey.groupIdentifier)
-  lazy val delegatedarn: Option[String] = props.get(TestUserPropKey.delegatedarn)
+    userId: String,
+    password: String,
+    userFullName: String,
+    emailAddress: String,
+    services: Seq[ServiceKey] = Seq.empty,
+    props: Map[TestUserPropKey, String] = Map.empty
+  ) extends TestUser {
+  val affinityGroup                           = "Agent"
+  lazy val arn: Option[String]                = props.get(TestUserPropKey.arn)
+  lazy val agentCode: Option[String]          = props.get(TestUserPropKey.agentCode)
+  lazy val groupIdentifier: Option[String]    = props.get(TestUserPropKey.groupIdentifier)
+  lazy val delegatedEnrolment: Option[String] = props.get(TestUserPropKey.delegatedEnrolment)
 }
 
 object TestAgent {
@@ -258,7 +258,7 @@ object TestAgent {
       (JsPath \ "emailAddress").read[String] and
       (JsPath \ "services").readWithDefault[Seq[ServiceKey]](Seq.empty) and
       (JsPath).read[Map[String, JsValue]].map(TestUserPropKey.convertMap(_))
-    )(TestAgent.apply _)
+  )(TestAgent.apply _)
 
   val writes: OWrites[TestAgent] = (
     (JsPath \ "userId").write[String] and
@@ -267,7 +267,7 @@ object TestAgent {
       (JsPath \ "emailAddress").write[String] and
       (JsPath \ "services").write[Seq[ServiceKey]] and
       (JsPath).write[Map[TestUserPropKey, String]]
-    )(unlift(TestAgent.unapply _))
+  )(unlift(TestAgent.unapply _))
 
   implicit val format: OFormat[TestAgent] = OFormat(reads, writes)
 

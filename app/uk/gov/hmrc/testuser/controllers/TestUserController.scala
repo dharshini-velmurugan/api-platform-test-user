@@ -79,8 +79,8 @@ class TestUserController @Inject() (val testUserService: TestUserService, cc: Co
         createUserRequest.serviceNames.getOrElse(Seq.empty),
         createUserRequest.pillar2Id
       ) map {
-        case Left(Pillar2IdAlreadyUsed)       => BadRequest(toJson(ErrorResponse.pillar2IdAlreadyUsed))
-        case Right (agent) => Created(toJson(TestAgentCreatedResponse.from(agent)))
+        case Left(Pillar2IdAlreadyUsed) => BadRequest(toJson(ErrorResponse.pillar2IdAlreadyUsed))
+        case Right(agent)               => Created(toJson(TestAgentCreatedResponse.from(agent)))
       }
     } recover recovery
   }

@@ -210,8 +210,8 @@ class Generator @Inject() (val testUserRepository: TestUserRepository, val confi
     }
   }
 
-  def generateTestAgent(services: Seq[ServiceKey] = Seq.empty,pillar2Id : Option[Pillar2Id]): Future[TestAgent] = {
-    def whenAppropriate: (=> Future[String]) => Future[Option[String]] = gen =>
+  def generateTestAgent(services: Seq[ServiceKey] = Seq.empty, pillar2Id: Option[Pillar2Id]): Future[TestAgent] = {
+    def whenAppropriate: (=> Future[String]) => Future[Option[String]]       = gen =>
       if (services.contains(AGENT_SERVICES)) {
         gen.map(Some(_))
       } else {
@@ -220,21 +220,20 @@ class Generator @Inject() (val testUserRepository: TestUserRepository, val confi
     def whenF[T](keys: ServiceKey*)(thenDo: => Future[T]): Future[Option[T]] = Generator.whenF(services)(keys)(thenDo)
 
     for {
-      arn            <- whenAppropriate(generateArn)
-      agentCode      <- whenAppropriate(generateAgentCode)
-      firstName       = generateFirstName
-      lastName        = generateLastName
-      userFullName    = generateUserFullName(firstName, lastName)
-      emailAddress    = generateEmailAddress(firstName, lastName)
-      groupIdentifier = Some(generateGroupIdentifier)
-      pillar2Id       <- whenF(PILLAR_2)(useProvidedOrGeneratedPillar2Id(pillar2Id))
-      delegatedarn <- whenAppropriate(generateArn)
+      arn                <- whenF(AGENT_SERVICES, PILLAR_2)(generateArn)
+      agentCode          <- whenAppropriate(generateAgentCode)
+      firstName           = generateFirstName
+      lastName            = generateLastName
+      userFullName        = generateUserFullName(firstName, lastName)
+      emailAddress        = generateEmailAddress(firstName, lastName)
+      groupIdentifier     = Some(generateGroupIdentifier)
+      delegatedEnrolment <- whenF(PILLAR_2)(useProvidedOrGeneratedPillar2Id(pillar2Id))
     } yield {
       val props = Map[TestUserPropKey, Option[String]](
-        TestUserPropKey.groupIdentifier -> groupIdentifier,
-        TestUserPropKey.arn             -> arn,
-        TestUserPropKey.agentCode       -> agentCode,
-        TestUserPropKey.pillar2Id       -> pillar2Id
+        TestUserPropKey.groupIdentifier    -> groupIdentifier,
+        TestUserPropKey.arn                -> arn,
+        TestUserPropKey.agentCode          -> agentCode,
+        TestUserPropKey.delegatedEnrolment -> delegatedEnrolment
       ).collect {
         case (key, Some(value)) => key -> value
       }
@@ -244,10 +243,10 @@ class Generator @Inject() (val testUserRepository: TestUserRepository, val confi
         userFullName,
         emailAddress,
         services,
-        props)
+        props
+      )
     }
   }
-
 
   def generateUserFullName(firstName: String, lastName: String) = s"$firstName $lastName"
 

@@ -66,6 +66,7 @@ class TestUserControllerSpec extends AsyncHmrcSpec with LogSuppressing {
   val exciseNumber                            = ExciseNumber(rawExciseNumber)
   val taxpayerType                            = TaxpayerType("Individual")
   val rawTaxpayerType                         = "Individual"
+  val delegatedEnrolment                      = Pillar2Id("XE4444444444444")
 
   val individualDetails   = IndividualDetails("John", "Doe", LocalDate.parse("1980-01-10"), Address("221b Baker St", "Marylebone", "NW1 6XE"))
   val organisationDetails = OrganisationDetails("Company ABCDEF", Address("225 Baker St", "Marylebone", "NW1 6XE"))
@@ -120,9 +121,10 @@ class TestUserControllerSpec extends AsyncHmrcSpec with LogSuppressing {
   val testOrganisationTaxpayerType = testOrganisation.copy(props = testOrganisation.props + (TestUserPropKey.taxpayerType -> "Individual"))
 
   val agentProps = Map[TestUserPropKey, String](
-    TestUserPropKey.arn             -> arn,
-    TestUserPropKey.groupIdentifier -> groupIdentifier,
-    TestUserPropKey.agentCode       -> "1234509876"
+    TestUserPropKey.arn                -> arn,
+    TestUserPropKey.groupIdentifier    -> groupIdentifier,
+    TestUserPropKey.agentCode          -> "1234509876",
+    TestUserPropKey.delegatedEnrolment -> pillar2Id.value
   )
 
   val testAgent = TestAgent(
@@ -138,6 +140,7 @@ class TestUserControllerSpec extends AsyncHmrcSpec with LogSuppressing {
   val createAgentServices        = Seq(AGENT_SERVICES)
 
   val createPillar2OrganisationServices = Seq(PILLAR_2)
+  val createPillar2AgentServices        = Seq(PILLAR_2)
 
   trait Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -195,6 +198,13 @@ class TestUserControllerSpec extends AsyncHmrcSpec with LogSuppressing {
 
     def createAgentRequest = {
       val jsonPayload: JsValue = Json.parse("""{"serviceNames":["agent-services"]}""")
+      FakeRequest().withBody[JsValue](jsonPayload)
+    }
+
+    def createAgentWithProvidedPillar2Id = {
+      val jsonPayload: JsValue = Json.parse(
+        s"""{"serviceNames":["pillar-2"], "pillar2Id": "${pillar2Id.value}"}"""
+      )
       FakeRequest().withBody[JsValue](jsonPayload)
     }
 
@@ -424,13 +434,14 @@ class TestUserControllerSpec extends AsyncHmrcSpec with LogSuppressing {
 
     "return 201 (Created) with the created agent" in new Setup {
 
-      when(underTest.testUserService.createTestAgent(createAgentServices)).thenReturn(successful(testAgent))
+      when(underTest.testUserService.createTestAgent(eqTo(createAgentServices), eqTo(None))(*)).thenReturn(successful(Right(testAgent)))
 
       val result = underTest.createAgent()(createAgentRequest)
       val props  = Map(
         "agentServicesAccountNumber" -> arn,
         "agentCode"                  -> agentCode,
-        "groupIdentifier"            -> groupIdentifier
+        "groupIdentifier"            -> groupIdentifier,
+        "delegatedEnrolment"         -> pillar2Id.value
       )
       status(result) shouldBe CREATED
       contentAsJson(result) shouldBe toJson(TestAgentCreatedResponse(
@@ -443,13 +454,21 @@ class TestUserControllerSpec extends AsyncHmrcSpec with LogSuppressing {
     }
 
     "fail with 500 (Internal Server Error) when the creation of the agent failed" in new Setup {
-      when(underTest.testUserService.createTestAgent(*))
+      when(underTest.testUserService.createTestAgent(*, eqTo(None))(*))
         .thenReturn(failed(new RuntimeException("expected test error")))
 
       val result = underTest.createAgent()(createAgentRequest)
 
       status(result) shouldBe INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe toJson(ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "An unexpected error occurred"))
+    }
+
+    "return 201 (Created) with the created agent with provided pillar2Id" in new Setup {
+
+      when(underTest.testUserService.createTestAgent(eqTo(createPillar2AgentServices), eqTo(Some(pillar2Id)))(*)).thenReturn(successful(Right(testAgent)))
+
+      val result = underTest.createAgent()(createAgentWithProvidedPillar2Id)
+      status(result) shouldBe CREATED
     }
   }
 

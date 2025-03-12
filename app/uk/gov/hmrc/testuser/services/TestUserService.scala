@@ -149,18 +149,16 @@ class TestUserService @Inject() (
     }
   }
 
-
-  def createTestAgent(serviceNames: Seq[ServiceKey],pillar2Id : Option[Pillar2Id])(implicit hc: HeaderCarrier
-  ): Future[Either[CreateTestUserError, TestAgent]]  = {
-    def createdAgent = generator.generateTestAgent(serviceNames,pillar2Id).flatMap { agent =>
+  def createTestAgent(serviceNames: Seq[ServiceKey], pillar2Id: Option[Pillar2Id])(implicit hc: HeaderCarrier): Future[Either[CreateTestUserError, TestAgent]] = {
+    def createdAgent = generator.generateTestAgent(serviceNames, pillar2Id).flatMap { agent =>
       val hashedPassword = passwordService.hash(agent.password)
       testUserRepository.createUser(agent.copy(password = hashedPassword)) map (_ => agent)
     }
     pillar2Id match {
       case Some(p) => validatePillar2AgentRequest(Some(p)) {
-        createdAgent
-      }
-      case _ => createdAgent.map(Right(_))
+          createdAgent
+        }
+      case _       => createdAgent.map(Right(_))
     }
 
   }
@@ -204,6 +202,7 @@ class TestUserService @Inject() (
   def fetchOrganisationByPillar2Id(pillar2Id: Pillar2Id): Future[TestOrganisation] = {
     testUserRepository.fetchOrganisationByPillar2Id(pillar2Id) map (t => t.getOrElse(throw UserNotFound(ORGANISATION)))
   }
+
   def fetchAgentByPillar2Id(pillar2Id: Pillar2Id): Future[TestAgent] = {
     testUserRepository.fetchAgentByPillar2Id(pillar2Id) map (t => t.getOrElse(throw UserNotFound(ORGANISATION)))
   }

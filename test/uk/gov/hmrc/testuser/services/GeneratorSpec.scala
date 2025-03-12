@@ -628,7 +628,7 @@ class GeneratorSpec extends AsyncHmrcSpec with ScalaCheckPropertyChecks {
     "not generate any identifiers when no services are included" in new Setup {
       when(repository.identifierIsUnique(*)(*)).thenReturn(Future(true))
 
-      val agent = await(underTest.generateTestAgent(Seq.empty))
+      val agent = await(underTest.generateTestAgent(Seq.empty, None))
 
       agent.arn shouldBe None
     }
@@ -636,7 +636,7 @@ class GeneratorSpec extends AsyncHmrcSpec with ScalaCheckPropertyChecks {
     "generate an agent reference number when AGENT_SERVICES service is included" in new Setup {
       when(repository.identifierIsUnique(*)(*)).thenReturn(Future(true))
 
-      val agent = await(underTest.generateTestAgent(Seq(AGENT_SERVICES)))
+      val agent = await(underTest.generateTestAgent(Seq(AGENT_SERVICES), None))
 
       agent.arn shouldBe defined
     }
@@ -644,7 +644,7 @@ class GeneratorSpec extends AsyncHmrcSpec with ScalaCheckPropertyChecks {
     "set the userFullName and emailAddress" in new Setup {
       when(repository.identifierIsUnique(*)(*)).thenReturn(Future(true))
 
-      val agent = await(underTest.generateTestAgent(Seq(AGENT_SERVICES)))
+      val agent = await(underTest.generateTestAgent(Seq(AGENT_SERVICES), None))
 
       agent.userFullName.matches("[a-zA-Z]+ [a-zA-Z]+") shouldBe true
 
